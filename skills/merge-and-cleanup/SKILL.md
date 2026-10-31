@@ -1,5 +1,5 @@
 ---
-name: merge-and-cleanup-pr
+name: merge-and-cleanup
 description: "Checks and merges a pull request using a user-approved merge method, then safely removes its local and remote topic branches. Use when the user asks to merge a PR and clean up its branches."
 license: MIT
 ---
