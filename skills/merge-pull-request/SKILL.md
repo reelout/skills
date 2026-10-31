@@ -1,12 +1,12 @@
 ---
-name: merge-and-cleanup
-description: "Checks and merges a pull request using a user-approved merge method, then safely removes its local and remote topic branches. Use when the user asks to merge a PR and clean up its branches."
+name: merge-pull-request
+description: "Checks and merges a pull request using a user-approved merge method, then removes its topic branches when safe. Use when the user asks to merge a PR."
 license: MIT
 ---
 
-# Merge a Pull Request and Clean Up
+# Merge a Pull Request
 
-Verify that the pull request is ready, recommend a merge method based on its commits and repository policy, and ask the user which method to use before merging. After verifying the merge, remove the local and remote topic branches when safe.
+Verify that the pull request is ready, recommend a merge method based on its commits and repository policy, and ask the user which method to use before merging. After the merge succeeds, remove the local and remote topic branches when safe.
 
 ## Workflow
 
