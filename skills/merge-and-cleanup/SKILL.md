@@ -32,7 +32,7 @@ Verify that the pull request is ready, recommend a merge method based on its com
    - Before changing the local checkout, confirm the worktree is clean. If it is dirty, do not stash, discard, or move changes; leave the local branch intact and report that cleanup is pending.
    - If currently on the source branch, switch to the target branch and update it from its configured remote using a fast-forward-only update. If switching or updating is unsafe, stop local cleanup without disturbing work.
    - Delete the local source branch only after confirming it points to the PR head and contains no additional commits or work that was not merged. Use a non-forced deletion when possible; if squash or rebase merging prevents Git from recognizing the branch as merged, forced local ref deletion is acceptable only after verifying the PR is merged and the branch tip exactly matches the merged PR head. Otherwise, preserve it and explain why.
-   - Check whether the remote source branch still exists; hosting platforms may have deleted it during merge. Delete it only after confirming it still points to the PR head. If it has advanced or diverged, do not delete it; report the discrepancy.
+   - Check whether the remote source branch still exists; hosting platforms may have deleted it during merge. Delete it only with an atomic compare-and-delete that requires the remote ref to match the exact PR-head SHA, for example `git push --force-with-lease=refs/heads/<branch>:<expected-sha> <remote> :refs/heads/<branch>`. Do not rely on a separate check followed by deletion. If the branch has advanced or diverged, or the hosting service cannot enforce the expected-head check atomically, preserve it and report why.
 5. **Report the result.**
    - Report the PR, selected merge method, resulting commit, branch cleanup performed, and any cleanup left pending. Never imply a branch was deleted unless verified.
 
@@ -40,5 +40,5 @@ Verify that the pull request is ready, recommend a merge method based on its com
 
 - The user's request authorizes merging and branch cleanup, but the merge method requires the user's explicit choice after seeing the recommendation.
 - For squash merges, obtain the user's approval of the exact target-branch commit message before merging.
-- Never force-push, delete the target/default branch, bypass required checks, or discard uncommitted changes.
+- Never force-push branch commits. Use `--force-with-lease` only for the atomic remote-branch deletion described above. Never delete the target/default branch, bypass required checks, or discard uncommitted changes.
 - If the PR head, local branch, or remote branch contains work beyond the merged PR, preserve that work and ask how to proceed.
