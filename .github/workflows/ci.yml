@@ -11,12 +11,14 @@ permissions:
   contents: read
 
 jobs:
-  validate:
-    name: Validate skills
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Run skill validation
-        run: ./scripts/validate.sh
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "lts/*"
+          cache: "pnpm"
+      - run: pnpm install
+      - run: pnpm validate
