@@ -6,39 +6,37 @@ license: MIT
 
 # Merge a Pull Request
 
-Verify that the pull request is ready, recommend a merge method based on its commits and repository policy, and ask the user which method to use before merging. After the merge succeeds, remove the local and remote topic branches when safe.
+Verify that the PR is ready to merge, recommend a method based on its contents and repository policy, and obtain the user's approval before merging. After a successful merge, safely clean up its source branches.
 
 ## Workflow
 
-1. **Identify the PR and inspect repository state.**
-   - Resolve the requested PR and confirm its repository, target branch, source branch, current head commit, and merge state.
-   - Check the PR's review status, required checks, conflicts, and which merge methods the repository allows. Do not proceed if the PR is closed, already merged, blocked, or not ready; explain the blocker.
-   - Inspect the commits and diff to understand whether the PR contains one cohesive topic or multiple distinct concerns. Check the local worktree and whether the source branch has local or remote commits not included in the PR.
-2. **Recommend and confirm the merge method.**
-   - Explain the available methods and recommend one based on the commit history and repository conventions:
-     - **Squash merge:** usually best for one cohesive topic when the PR's individual commits do not need to remain in the target history.
-     - **Merge commit:** usually best when the PR contains multiple meaningful topics or commits whose separate history and branch context should be preserved.
-     - **Rebase merge:** preserves individual commits while keeping target history linear; recommend it when that matches repository policy and the commits are suitable for a linear history.
-   - Tailor the recommendation to the actual PR; do not infer topic count from commit count alone.
-   - Use the ask-user tool to present the available methods, state the recommendation and rationale, and ask which method the user approves. Do not merge until the user chooses a method.
-   - If the preferred method is not enabled or the user declines, stop without merging.
-3. **Merge using the approved method.**
-   - Recheck that the PR is still open, mergeable, and passing its required checks. If its head or readiness changed since confirmation, stop and ask again.
-   - For a squash merge, draft the exact commit subject and body that will appear on the target branch. Show the complete message to the user and obtain approval before merging; do not merge until both the method and message are approved.
-   - Merge with the selected method using the repository's supported tooling. Do not change the PR's content or bypass required checks.
-   - Verify that the PR reports merged and record the resulting merge commit or squash/rebase commit.
-4. **Safely clean up branches.**
-   - Identify the PR source branch and target branch. Never delete the target branch or the repository's default branch.
-   - Before changing the local checkout, confirm the worktree is clean. If it is dirty, do not stash, discard, or move changes; leave the local branch intact and report that cleanup is pending.
-   - If currently on the source branch, switch to the target branch and update it from its configured remote using a fast-forward-only update. If switching or updating is unsafe, stop local cleanup without disturbing work.
-   - Delete the local source branch only after confirming it points to the PR head and contains no additional commits or work that was not merged. Use a non-forced deletion when possible; if squash or rebase merging prevents Git from recognizing the branch as merged, forced local ref deletion is acceptable only after verifying the PR is merged and the branch tip exactly matches the merged PR head. Otherwise, preserve it and explain why.
-   - Check whether the remote source branch still exists; hosting platforms may have deleted it during merge. Delete it only with an atomic compare-and-delete that requires the remote ref to match the exact PR-head SHA. Invoke Git through an argv-safe process or API, passing the executable and each argument separately; never interpolate the branch or remote name into a shell command string or invoke a shell to construct the command. The single push operation must include the force-with-lease expectation for the branch ref and exact PR-head SHA, the remote name, and the deletion refspec. Do not rely on a separate check followed by deletion. If the branch has advanced or diverged, or the hosting service cannot enforce the expected-head check atomically, preserve it and report why.
-5. **Report the result.**
-   - Report the PR, selected merge method, resulting commit, branch cleanup performed, and any cleanup left pending. Never imply a branch was deleted unless verified.
+1. **Inspect the PR and repository.**
+   - Confirm the repository, target and source branches, head SHA, PR state, mergeability, reviews, required checks, and enabled merge methods.
+   - Review the commits and diff to determine whether the PR contains one cohesive change or several distinct concerns. Check whether either source branch has work beyond the PR head.
+   - If the PR is already merged, verify the merge and proceed to cleanup. If it is closed without merging, conflicted, missing required reviews, or has failing checks, explain why and stop.
+   - Treat pending required checks as blockers. Wait for them when practical; otherwise, report the blocker and stop.
+2. **Recommend and confirm a merge method.**
+   - Base the recommendation on the PR's logical changes, commit history, and repository conventions; commit count alone does not determine how many topics it contains.
+   - Prefer **squash merge** for one cohesive topic when the individual commits need not be preserved in the target history.
+   - Prefer a **merge commit** for multiple meaningful concerns when preserving the branch's commit history is useful.
+   - Prefer **rebase merge** when the repository favors linear history and the individual commits should be preserved.
+   - Tell the user which methods are enabled and recommend one with a brief rationale. Use the ask-user tool to get their explicit choice; do not merge without it.
+   - If squash is selected, prepare the exact commit subject and body for the target branch. Show the complete message and obtain the user's approval before merging. If they decline it, stop without merging.
+3. **Merge the approved PR.**
+   - Immediately before merging, confirm the PR is still open and mergeable, its head SHA is unchanged, and all required checks and reviews pass. If its head or merge method has changed since approval, ask the user to confirm again.
+   - Use supported tooling to merge with the approved method. Do not change the PR or bypass repository protections.
+   - Verify the PR is merged and record the resulting commit SHA. If the merge fails or cannot be verified, do not clean up branches.
+4. **Clean up the source branches safely.**
+   - Never delete the target branch or repository default branch. Check local and remote source branches separately; the hosting platform may already have removed the remote branch.
+   - Delete the remote source branch only with an atomic compare-and-delete that requires its ref to match the exact PR head SHA. Invoke Git via an argv-safe process or API, passing the executable and arguments separately; never interpolate branch or remote names into a shell command. If the operation cannot enforce the expected SHA atomically, preserve the branch and explain why.
+   - Before changing the local checkout, verify the worktree is clean. If it is not, leave the local source branch untouched and report that local cleanup is pending. Remote cleanup may proceed independently if its atomic safety check is available.
+   - If checked out on the source branch, switch to the target branch and fast-forward it from its configured remote. If switching or updating is unsafe, leave the local source branch intact.
+   - Delete the local source branch only when its tip exactly matches the PR head SHA, proving it has no additional commits. Prefer normal deletion. If Git refuses because a squash or rebase merge leaves the PR head outside the target history, forced local ref deletion is acceptable only after verifying the merge and exact tip match. Otherwise, preserve the branch.
+5. **Report the outcome.**
+   - Report the PR, chosen merge method, resulting commit SHA, and the status of each source-branch cleanup. Explain anything left pending.
 
 ## Safety
 
-- The user's request authorizes merging and branch cleanup, but the merge method requires the user's explicit choice after seeing the recommendation.
-- For squash merges, obtain the user's approval of the exact target-branch commit message before merging.
-- Never force-push branch commits. Use `--force-with-lease` only for the atomic remote-branch deletion described above. Never delete the target/default branch, bypass required checks, or discard uncommitted changes.
-- If the PR head, local branch, or remote branch contains work beyond the merged PR, preserve that work and ask how to proceed.
+- Obtain explicit approval for the merge method; for squash merges, also obtain approval of the exact commit message.
+- Never force-push branch commits. Use forced ref deletion only for the verified local cleanup described above; remote deletion requires an atomic expected-SHA check.
+- Never bypass required checks, discard uncommitted changes, or delete a source branch whose tip differs from the verified PR head.
