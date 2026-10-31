@@ -5,7 +5,7 @@ This repository hosts a curated collection of installable agent skills for AI co
 ## Install
 
 ```sh
-npx skills add aicest/skills
+npx skills add reelout/skills
 ```
 
 This command installs the published skills in this repo into your local agent tooling.
